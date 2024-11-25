@@ -1,0 +1,366 @@
+---
+title: "ITS_report"
+author: "Elena D. Díaz Santiago"
+date: "2024-11-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      warning = FALSE,
+                      comment = "",
+                      eval=  TRUE,
+                      include = TRUE)
+```
+
+```{r }
+library(phyloseq)
+library(vegan)
+library(pairwiseAdonis)
+library(microbiome)
+library(microbiomeMarker)
+library(qiime2R)
+library(ggplot2)
+library(ggpubr)
+library(ggVennDiagram)
+library(gridExtra) 
+library(kableExtra)
+library(dplyr)
+library(magrittr)
+library(metagenomeSeq)
+library(microeco)
+library(file2meco)
+```
+
+```{r echo=FALSE}
+#load own functions
+source("C:/Users/elenad/Documents/proyectos/scripts/functions.R")
+```
+
+
+# Experimental design
+
+The objective of this study is to analyze whether soil microbial communities influence the germination of *Quercus ilex*. To this end,we have compared the structure of the communities of three locations in Spain with different climate conditions: Somiedo (Asturias), Ronda (Malaga), and Abla (Almeria)
+
+The hypothesis is that the microbial communities living in soils beneath the trees could be positively affecting germination. 
+It is proposed to perform an analysis of the diversity and composition of microbial communities in each soil type using techniques such as amplicon sequencing (e.g., using markers like the ITS rRNA gene for Fungi).
+  
+#Load Data  
+Sequences were analyse with the software QIIME2. Now we import the generated dataset to perform downstream analysis.  
+  
+```{r }
+physeq <-qza_to_phyloseq(features="taxonomy/len1/final_FeatureTable.qza", 
+                         tree="phylogeny/len1/rooted-tree.qza", 
+                         taxonomy="taxonomy/len1/taxonomy.qza", 
+                         metadata="metadata.txt")
+```
+
+
+# Positive control - Mock Analysis 
+
+As a quality control measure, a positive control with known microorganisms was introduced. Specifically, it contains two fungi:
+- ***Saccharomyces cerevisiae***  
+- ***Cryptococcus neoformans***
+
+
+Therefore, the first thing we are going to check is that we have been able to taxonomically identify these microorganisms in the mock samples.
+
+```{r mocktaxonomy}
+physeq@sam_data$SampleID <- row.names(physeq@sam_data)
+#obtain mock table
+mock_ps <- subset_samples(physeq, SampleID=="MockZymo106")
+#remove otus == 0
+mock_ps.clean = prune_taxa(taxa_sums(mock_ps) > 1, mock_ps)
+#agglomerate taxonomic results to Genus level
+mock_tg <- tax_glom(mock_ps.clean, taxrank="Genus")
+mock_tf <- tax_glom(mock_ps.clean, taxrank="Family")
+
+#obtain taxonomic table
+kable(mock_tg@tax_table[,1:6], row.names = FALSE, caption = "Mock taxonomy at Genus level.")
+```
+
+# Filter data
+
+```{r FilterData}
+#remove mock sample
+physeq_wo_mock <- subset_samples(physeq, !SampleID %in% c("MockZymo106"))
+#remove ASVs == 1
+physeq.clean <- prune_taxa(taxa_sums(physeq_wo_mock) > 1, physeq_wo_mock)
+
+#Remove otus not annotated Phylum level
+physeq.clean <- subset_taxa(physeq.clean, Phylum != "NA")
+
+#Clean genus list
+genus_l <- get_taxa_unique(physeq.clean, taxonomic.rank="Genus")
+remove <- c(NA, "uncultured")
+genus_l <- genus_l[! genus_l %in% remove]
+```
+
+# Obtain the number of Genus
+
+```{r ObtainGenusData}
+#agglomerate taxonomic results to Genus level
+ps.genus_all <- tax_glom(physeq.clean, taxrank="Genus")
+#Obtain all the genera
+genus_l <- get_taxa_unique(ps.genus_all, taxonomic.rank="Genus")
+#remove unasigned genera
+genus_to_remove <- c(NA, "uncultured")
+genus_l <- genus_l[!genus_l %in% genus_to_remove]
+ps.genus <- subset_taxa(ps.genus_all, Genus %in% genus_l)
+
+genus_df <- psmelt(ps.genus)
+
+#Remove abundance 0
+genus_df <- genus_df[!genus_df$Abundance == 0,]
+#Count the number of Genera per sample
+genus_count_sample_df <- genus_df %>%
+  group_by(SampleID) %>%
+  summarise(Genus_nb = length(unique(Genus)))
+genus_count_sample_df$Site <- physeq.clean@sam_data$Site
+
+#ANOVA
+anova <- aov(Genus_nb ~ Site, data = genus_count_sample_df)
+summary(anova)
+
+#tukey multiple comparison test (ANOVA post hoc)
+tukey <- TukeyHSD(anova)
+
+letters <- multcompLetters(tukey$Site[, "p adj"])$Letters
+letters <- as.data.frame(letters)
+letters$Site <- rownames(letters)
+
+#Mean and SD Genera number by site
+genus_count_df_fungi <- genus_count_sample_df%>%
+  group_by(Site) %>%
+  summarise(Genus_mean = mean(Genus_nb), SD = sd(Genus_nb))
+
+kable(genus_count_df_fungi, row.names = FALSE, caption = "Number of genera identified per experimental condition. The table presents the total number of genera detected in each experimental Site, without considering their abundances. This provides an overview of the taxonomic diversity present in each condition based solely on the presence of genera.")
+```
+
+```{r genusbarplot}
+genus_count_df_fungi <- merge(genus_count_df_fungi, letters, by = "Site")
+genus_count_df_fungi$Type <- rep("Fungi", nrow(genus_count_df_fungi))
+
+ggplot(genus_count_df_fungi, aes(x=Site, y=Genus_mean)) + 
+  geom_bar(stat="identity", position=position_dodge()) +
+  geom_errorbar(aes(ymin=Genus_mean, ymax=Genus_mean+SD), width=.2, position=position_dodge(.9)) +
+  geom_text(aes(label = letters), size = 6, position="jitter", vjust = -1)
+```
+
+# Obtain the number of Phylum
+
+```{r ObtainPhylumData}
+#agglomerate taxonomic results to Phylum level
+ps.phylum <- tax_glom(physeq.clean, taxrank="Phylum")
+phylum_df <- psmelt(ps.phylum)
+
+#Remove abundance 0
+phylum_df <- phylum_df[!phylum_df$Abundance == 0,]
+#Count the number of Genera per sample
+phylum_count_sample_df <- phylum_df %>%
+  group_by(SampleID) %>%
+  summarise(Phylum_nb = length(unique(Phylum)))
+phylum_count_sample_df$Site <- physeq.clean@sam_data$Site
+
+#ANOVA
+anova <- aov(Phylum_nb ~ Site, data = phylum_count_sample_df)
+summary(anova)
+
+#tukey multiple comparison test (ANOVA post hoc)
+tukey <- TukeyHSD(anova)
+
+#Mean and SD Genera number by site
+phylum_count_df <- phylum_count_sample_df%>%
+  group_by(Site) %>%
+  summarise(Phylum_mean = mean(Phylum_nb), SD = sd(Phylum_nb))
+
+kable(phylum_count_df, row.names = FALSE, caption = "Number of Phylum identified per experimental condition. The table presents the total number of Phylum detected in each experimental Site, without considering their abundances. This provides an overview of the taxonomic diversity present in each condition based solely on the presence of Phylum.")
+```
+
+# Alpha diversity
+```{r AlphaDiversity}
+metrics <- c("Shannon", "Simpson", "Observed")
+comparisons <-list(c("Abla", "Ronda"), c("Abla", "Somiedo"), c("Ronda", "Somiedo"))
+#STABLISH THE STATISTIVAL METRICS TO CALCULATE IF THE DIVERSITY IS SIFNIFICANT BETWEEN GROUPS
+stat_metrics <- c("wilcox.test")
+
+#OBTAIN ALPHA DIVERSITY PLOT
+alpha_diversity_plot(physeq.clean, "Site", metrics, comparisons, stat_metrics, asterisk = TRUE, " ")
+
+#alpha diversity table
+alpha.tb <- estimate_richness(physeq.clean, measures=metrics)
+alpha.tb$Site <- physeq.clean@sam_data$Site
+write.table(alpha.tb, "fungi_alpha_div_tb.tsv", sep = "\t", quote = FALSE)
+kable(alpha.tb)
+```
+
+# Normalization
+
+Generally, sequencing data sets are not of the same size. So, to make relatively fair comparisons between sets, we need to normalize the counts. It is necessary to prepare the data in a way that improves the comparability of the samples (e.g. alpha diversity, beta-diversity). There are different methods to perform normalization, but in this case we are using Cumultive Sum Scaling with microbiomeMarker package.
+
+```{r PhyloseqNormalizarion}
+#cumulative sum scaling
+physeq.css <- normalize(physeq.clean, "CSS")
+```
+
+
+## Beta Diversity
+
+```{r BraycurtisDistanceCalculation}
+distance <- "bray"
+
+set.seed(1)
+
+bray_distance <- phyloseq::distance(physeq.css, method = distance)
+meta <- data.frame(sample_data(physeq.css))
+```
+
+
+```{r BrayPermanova}
+bray_permanova <- adonis2(bray_distance ~ Site, data = meta, permutations = 999, method = distance)
+
+bp_pvalue <- paste("P-value", bray_permanova$`Pr(>F)`[1])
+bray_permanova_text <- paste("PERMANOVA", bp_pvalue, sep = "\n")
+
+bray_permanova
+```
+
+**Pairwise Permanova**
+
+*Ronda vs Somiedo*
+
+```{r Pairwise1}
+pairwise_bray <- pairwise.adonis2(bray_distance ~ Site, data = meta)
+pairwise_bray$Ronda_vs_Somiedo
+```
+
+*Ronda vs Abla*
+
+```{r Pairwise2}
+pairwise_bray$Ronda_vs_Abla
+```
+
+*Somiedo vs Abla*
+
+```{r Pairwise3}
+pairwise_bray$Somiedo_vs_Abla
+```
+
+***PCoA - Bray Curtis*** 
+
+```{r BraycurtisPCoA, fig.cap="Beta diversity analysis using Bray-Curtis dissimilarity visualized by PCoA. The plot represents the principal coordinates analysis (PCoA) based on Bray-Curtis distances, illustrating the dissimilarity between samples across experimental groups. A PERMANOVA test was conducted to assess statistical differences, with the p-value displayed on the graph."}
+method <- "PCoA"
+
+pcoa_bray <- betadiversity_analysis(physeq.css, method, distance)
+plot_distance(physeq.css, pcoa_bray, "Site", elipse = TRUE) + annotate("text" ,x=0.2,y=0.43, label = bray_permanova_text) 
+```
+
+
+# Relative Abundance
+
+```{r calculateRelativeAbundance}
+#filter NA and unclutured genus
+ps_genus <- subset_taxa(physeq.clean, Genus %in% genus_l)
+ps.taxa.sub <- subset_samples(ps_genus, Site %in% c("Ronda", "Somiedo"))
+ps.taxa.sub <- prune_taxa(taxa_sums(ps.taxa.sub) > 1, ps.taxa.sub)
+
+#Convert to relative abundance according to a taxonomic level -> Genus
+genus_rel_abun <- relative_abundance_by_taxa(ps.taxa.sub, "Genus")
+#physeq object
+genus_rel_ps <- genus_rel_abun[[1]]
+#data.frame
+genus_rel_df <- genus_rel_abun[[2]]
+names(genus_rel_df)[3] <- paste("Relative_Abundance")
+
+```
+
+## Top 20 by Sample
+
+```{r Top20, fig.width=8, fig.height=6}
+#Filter top 20
+top_taxa <- top_taxa(genus_rel_ps, n = 20)
+filter_top_ps <- prune_taxa(top_taxa, genus_rel_ps)
+genus_top_filter.df <- phyloseq::psmelt(filter_top_ps)
+names(genus_top_filter.df)[3] <- paste("Rel_Abundance")
+plot_abundance_by_sample(genus_top_filter.df, "SampleID", "Rel_Abundance", "Genus", "SampleID") + facet_wrap(~Site, scales = "free")
+```
+
+## > 1% Abundance
+
+```{r 1RelAbundance, fig.width=10, fig.height=6}
+ps_genus_1 <- filter_taxa(genus_rel_ps, function(x) mean(x) > 1,TRUE)
+genus_1_filter.df <- phyloseq::psmelt(ps_genus_1)
+names(genus_1_filter.df)[3] <- paste("Rel_Abundance")
+plot_abundance_by_sample(genus_1_filter.df, "SampleID", "Rel_Abundance", "Genus", "SampleID") + facet_wrap(~Site, scales = "free")
+```
+
+
+## Top 20 By Genera
+  
+**Top 20**  
+```{r Top20Genera, fig.width=8}
+
+top_genus_rel_sumarize <- genus_top_filter.df %>%  group_by(Site, Genus) %>% 
+  summarise(Relative_Abundance=mean(Rel_Abundance, na.rm=TRUE), sd=sd(Rel_Abundance, na.rm=TRUE))
+
+plot_abundance_by_taxa(top_genus_rel_sumarize, "Genus", "Relative_Abundance", "Site")
+```
+  
+**Top 20 by Site**  
+
+```{r Top20BySite, fig.width=8}
+#Top 20 by site
+ps_rel_ronda <- subset_samples(genus_rel_ps, Site %in% "Ronda")
+top_taxa_ronda <- top_taxa(ps_rel_ronda, n = 20)
+ps_top_taxa_ronda <- prune_taxa(top_taxa_ronda, ps_rel_ronda)
+ronda_top_taxa.df <- phyloseq::psmelt(ps_top_taxa_ronda)
+
+ps_rel_somiedo <- subset_samples(genus_rel_ps, Site %in% "Somiedo")
+top_taxa_somiedo <- top_taxa(ps_rel_somiedo, n = 20)
+ps_top_taxa_somiedo <- prune_taxa(top_taxa_somiedo, ps_rel_somiedo)
+somiedo_top_taxa.df <- phyloseq::psmelt(ps_top_taxa_somiedo)
+
+top_taxa.df <- rbind(ronda_top_taxa.df, somiedo_top_taxa.df)
+names(top_taxa.df)[3] <- paste("Rel_Abundance")
+
+
+top_20_genus_rel_sumarize <- top_taxa.df %>%  group_by(Site, Genus) %>% 
+  summarise(Relative_Abundance=mean(Rel_Abundance, na.rm=TRUE), sd=sd(Rel_Abundance, na.rm=TRUE))
+
+plot_abundance_by_taxa(top_20_genus_rel_sumarize, "Genus", "Relative_Abundance", "Site")
+```
+
+
+# Functional Traits Analysis
+
+
+This analysis is carried out thanks to the R microeco package, which searches for the functions related to prokaryotic communities using the FAPROTAX database. Subsequently, it performs a differential abundance analysis of the routes found depending on the conditions that are established.
+
+```{r DAA-FTA, fig.width=8, fig.height=7}
+#Create microeco object with Ronda and Somiedo Samples
+meco_fung <- phyloseq2meco(ps.taxa.sub)
+t1_fung <- trans_func$new(meco_fung)
+
+#Search in FUNGuild
+t1_fung$cal_spe_func(fungi_database = "FUNGuild", FUNGuild_confidence = c("Highly Probable", "Probable", "Possible"))
+#obtain abundance
+t1_fung$cal_spe_func_perc(abundance_weighted = TRUE)
+#obtain percentage
+t1_fung$trans_spe_func_perc()
+
+# clone meco_fung for differential test
+tmp_fung <- clone(meco_fung)
+
+# we need assign the table to taxa_abund manually
+tmp_fung$taxa_abund$func <- as.data.frame(t(t1_fung$res_spe_func_perc), check.names = FALSE)
+# use trans_diff class to perform differential test
+t2_fung <- trans_diff$new(dataset = tmp_fung, method = "wilcox", group = "Site", taxa_level = "func", alpha = 0.05)
+
+sig_pathways <- t2_fung$res_diff[t2_fung$res_diff$P.adj < 0.05,]
+pathway_l <- unique(sig_pathways$Taxa)
+abund_t_fung <- t2_fung$res_abund[t2_fung$res_abund$Taxa %in% pathway_l, ]
+
+textdf_fung <- obtain_significance_df(sig_pathways, abund_t_fung)
+fta_abundance_barplot(abund_t_fung, textdf_fung)
+```
