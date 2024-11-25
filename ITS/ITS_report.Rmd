@@ -35,7 +35,7 @@ library(file2meco)
 
 ```{r echo=FALSE}
 #load own functions
-source("C:/Users/elenad/Documents/proyectos/scripts/functions.R")
+source("C:/functions.R")
 ```
 
 
