@@ -42,7 +42,7 @@ Scripts for 16S and ITS analysis are available in the directory with its corresp
 - The fourth script generate the phylogenetic tree.  
   
 **2.** Run Rmkardown template.  
-With QIIME2 output we can perform different analysis. The markdown template contains the code for downstream analysis and generates a report in HTML. You have to ways to obtain the repors:   
+With QIIME2 output we can perform different analysis. The markdown template contains the code for downstream analysis and generates a report in HTML. You have to ways to obtain the reports:   
 - RStudio:
 Open RStudio, set the working directory and execute the following commands:  
   
@@ -66,7 +66,8 @@ Rscript rmarkdown::render('16S_report.Rmd')
 Rscript rmarkdown::render('ITS_report.Rmd')
 ```
 
-
+Do not forget to set the path for the functions.R file before to compile the reports. Moreover, you need to excute the reports in 16S or ITS directory in order to have QIIME2 outputs accesible for the reports. In case you customize QIIME2 output modify the path to the files needed in the reports templates.  
+  
 ## Citation
 
 If you use some of the code available in this repository please cite this article:
