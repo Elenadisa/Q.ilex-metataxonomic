@@ -34,7 +34,7 @@ Donwload [R](https://cran.r-project.org/bin/windows/base/), and also you can dow
 Before to start the analysis you need to install the following CRAN packages:  
 
 ```{r }
-install.packages(c("ggplot2", "ggpubr", "ggVennDiagram", "rmarkdown", "gridExtra", "kableExtra", "dplyr", "magrittr", "multcompView"))
+install.packages(c("ggplot2", "ggpubr", "rmarkdown", "gridExtra", "kableExtra", "dplyr", "magrittr", "multcompView"))
 ``` 
   
 Furthermore, these bioconductor packages should be installed using the the BiocManager package:  
@@ -43,7 +43,7 @@ Furthermore, these bioconductor packages should be installed using the the BiocM
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 
-BiocManager::install(c("phyloseq", "microbiomeMarker", "microeco", "microbiome", "metagenomeSeq", "file2meco"))
+BiocManager::install(c("phyloseq", "microbiomeMarker", "microeco", "metagenomeSeq", "file2meco"))
 ```
   
 Also, you may download other packages from github:  
