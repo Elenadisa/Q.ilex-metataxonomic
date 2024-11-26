@@ -3,9 +3,28 @@
 This repository stores the code available to perform an amplicon analysis with QIIME2 and downstream analysis with R.  
 This code can be run in any Linux system. However, if you are a Windows user you need to run QIIME2 part in WSL.  
   
-## Download QIIME2  
+## Download and Install QIIME2  
 This analysis was performed with QIIME2 2023.5 version. To install QIIME2 follow the [instructions](https://docs.qiime2.org/2023.5/install/index.html).  
 In case you want to use updated version of QIIME2 install amplicon version.  
+
+## Download pretrained classifiers  
+We used SILVA and UNITE pretrained classifiers that are available at [QIIME2 web](https://docs.qiime2.org/2023.5/data-resources/). Create a taxonomy_classifier directory and save the .qza files inside. 
+  
+```{bash }
+mkdir taxonomy_classifier
+
+curl https://data.qiime2.org/2023.5/common/silva-138-99-nb-classifier.qza -o taxonomy_classifier/silva-138-99-nb-classifier.qza
+curl https://github.com/colinbrislawn/unite-train/releases/download/v9.0-v25.07.2023-qiime2-2023.5/unite_ver9_dynamic_all_25.07.2023-Q2-2023.5.qza -o taxonomy_classifier/unite_ver9_dynamic_all_25.07.2023-Q2-2023.5.qza
+```
+  
+Make sure that the name of the classifiers correspond to the paths in:
+  
+```{bash }
+16S/qiime2_pipeline_16S/3_assing_taxonomy.sh   #line 14
+
+ITS/qiime2_pipeline_ITS/3_assing_taxonomy.sh   #line 17
+```
+
 
 ## Download R and RStudio  
 R analysis can be run in any computer.  
