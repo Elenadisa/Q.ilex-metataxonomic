@@ -14,7 +14,7 @@ mkdir taxonomy
 
 #Taxonomy len1
 qiime feature-classifier classify-sklearn \
-  --i-classifier /mnt/c/Users/elenad/Documents/proyectos/senegal/taxonomy_classifiers/unite_ver9_dynamic_all_25.07.2023-Q2-2023.5.qza \
+  --i-classifier ../taxonomy_classifiers/unite_ver9_dynamic_all_25.07.2023-Q2-2023.5.qza \
   --i-reads dada2/RepSeqTable.qza \
   --o-classification taxonomy/taxonomy.qza \
   --p-reads-per-batch 1000 \
