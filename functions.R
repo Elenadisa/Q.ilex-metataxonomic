@@ -290,8 +290,8 @@ obtain_significance_df <- function(diff_t, abund_t){
   
 }
 
-fta_abundance_barplot <- function(abund_data, text_data){
-  ggplot(abund_data, aes(x=Mean, y=reorder(Taxa,Mean), fill = Group)) +
+fta_abundance_barplot <- function(abund_data, text_data, Group){
+  ggplot(abund_data, aes(x=Mean, y=reorder(Taxa,Mean), fill = get(Group))) +
     geom_bar(colour="black", stat="identity", position=position_dodge()) +
     geom_errorbar(aes(xmin=Mean, xmax=Mean+SE), width=.2,position=position_dodge(.9)) +
     theme_classic() +

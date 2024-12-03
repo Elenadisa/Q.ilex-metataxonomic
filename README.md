@@ -43,7 +43,7 @@ Furthermore, these bioconductor packages should be installed using the the BiocM
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 
-BiocManager::install(c("phyloseq", "microbiomeMarker", "microeco", "microbiome", "file2meco"))
+BiocManager::install(c("phyloseq", "metagenomeSeq", "microeco", "microbiome", "file2meco"))
 ```
   
 Also, you may download other packages from github:  

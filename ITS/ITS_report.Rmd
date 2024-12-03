@@ -23,17 +23,19 @@ library(microbiomeMarker)
 library(qiime2R)
 library(ggplot2)
 library(ggpubr)
+library(ggVennDiagram)
+library(gridExtra) 
 library(kableExtra)
 library(dplyr)
 library(magrittr)
+library(metagenomeSeq)
 library(microeco)
 library(file2meco)
-library(multcompView)
 ```
 
 ```{r echo=FALSE}
 #load own functions
-source("C:/functions.R")
+source("C:/Users/elenad/Documents/proyectos/scripts/functions.R")
 ```
 
 
@@ -193,13 +195,18 @@ write.table(alpha.tb, "fungi_alpha_div_tb.tsv", sep = "\t", quote = FALSE)
 kable(alpha.tb)
 ```
 
-# Normalization
+# Normalization - metagenomeSeq  
 
-Generally, sequencing data sets are not of the same size. So, to make relatively fair comparisons between sets, we need to normalize the counts. It is necessary to prepare the data in a way that improves the comparability of the samples (e.g. alpha diversity, beta-diversity). There are different methods to perform normalization, but in this case we are using Cumultive Sum Scaling with microbiomeMarker package.
+Generally, sequencing data sets are not of the same size. So, to make relatively fair comparisons between sets, we need to normalize the counts. It is necessary to prepare the data in a way that improves the comparability of the samples (e.g. alpha diversity, beta-diversity). There are different methods to perform normalization, but in this case we are using Cumultive Sum Scaling with metagenomeSeq package.
 
 ```{r PhyloseqNormalizarion}
 #cumulative sum scaling
-physeq.css <- normalize(physeq.clean, "CSS")
+physeq.css <- physeq.clean
+
+ps_metagenomeseq <-phyloseq_to_metagenomeSeq(physeq.clean)
+obj_trans<-cumNormMat(ps_metagenomeseq)
+
+otu_table(physeq.css) <- otu_table(obj_trans, taxa_are_rows = TRUE)
 ```
 
 
@@ -358,7 +365,8 @@ t2_fung <- trans_diff$new(dataset = tmp_fung, method = "wilcox", group = "Site",
 sig_pathways <- t2_fung$res_diff[t2_fung$res_diff$P.adj < 0.05,]
 pathway_l <- unique(sig_pathways$Taxa)
 abund_t_fung <- t2_fung$res_abund[t2_fung$res_abund$Taxa %in% pathway_l, ]
+abund_t_fung$Taxa <- as.character(abund_t_fung$Taxa) 
 
 textdf_fung <- obtain_significance_df(sig_pathways, abund_t_fung)
-fta_abundance_barplot(abund_t_fung, textdf_fung)
+fta_abundance_barplot(abund_t_fung, textdf_fung, "Site")
 ```
