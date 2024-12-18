@@ -16,7 +16,6 @@ knitr::opts_chunk$set(echo = TRUE,
 ```{r }
 library(phyloseq)
 library(vegan)
-library(pairwiseAdonis)
 library(microbiome)
 library(microbiomeMarker)
 library(qiime2R)
