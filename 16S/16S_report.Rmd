@@ -33,7 +33,7 @@ library(multcompView)
 
 ```{r echo=FALSE}
 #load own functions
-source("C:MAKE/PATH/Q.ilex-metataxonomic/functions.R")
+source("C:/Users/elenad/Documents/proyectos/scripts/functions.R")
 ```
 
 
@@ -132,9 +132,9 @@ summary(anova)
 #tukey multiple comparison test (ANOVA post hoc)
 tukey <- TukeyHSD(anova)
 
-letters <- multcompLetters(tukey$Site[, "p adj"])$Letters
-letters <- as.data.frame(letters)
-letters$Site <- rownames(letters)
+letters <- multcompLetters4(anova, tukey)$Site
+
+letters_df <- data.frame(Site = names(letters$Letters), Letter = as.character(letters$Letters))
 
 #Mean and SD Genera number by site
 genus_count_df_bact <- genus_count_sample_df%>%
@@ -145,13 +145,15 @@ kable(genus_count_df_bact, row.names = FALSE, caption = "Number of genera identi
 ```
 
 ```{r genusbarplot}
-genus_count_df_bact <- merge(genus_count_df_bact, letters, by = "Site")
+genus_count_df_bact <- merge(genus_count_df_bact, letters_df, by = "Site")
 genus_count_df_bact$Type <- rep("Prokaryote", nrow(genus_count_df_bact))
 
 ggplot(genus_count_df_bact, aes(x=Site, y=Genus_mean)) + 
   geom_bar(stat="identity", position=position_dodge()) +
   geom_errorbar(aes(ymin=Genus_mean, ymax=Genus_mean+SD), width=.2, position=position_dodge(.9)) +
-  geom_text(aes(label = letters), size = 6, position="jitter", vjust = -1)
+  geom_text(mapping = aes(label = Letter, y = Genus_mean * 1.3, size=12), 
+              position = position_dodge(width = 0.9), show.legend = F, fontface = "bold") +
+  theme_classic()
 ```
 
 # Obtain the number of Phylum
@@ -188,12 +190,13 @@ kable(phylum_count_df, row.names = FALSE, caption = "Number of Phylum identified
 # Alpha diversity
 ```{r AlphaDiversity}
 metrics <- c("Shannon", "Simpson", "Observed")
-comparisons <-list(c("Abla", "Ronda"), c("Abla", "Somiedo"), c("Ronda", "Somiedo"))
+comparisons <-list(c("Ronda", "Somiedo"))
 #STABLISH THE STATISTIVAL METRICS TO CALCULATE IF THE DIVERSITY IS SIFNIFICANT BETWEEN GROUPS
 stat_metrics <- c("wilcox.test")
 
 #OBTAIN ALPHA DIVERSITY PLOT
-alpha_diversity_plot(physeq.clean, "Site", metrics, comparisons, stat_metrics, asterisk = TRUE, " ")
+alpha_bact <- alpha_diversity_plot(physeq.clean, "Site", metrics, comparisons, stat_metrics, asterisk = TRUE, " ")
+alpha_bact
 
 #alpha diversity table
 alpha.tb <- estimate_richness(physeq.clean, measures=metrics)
@@ -238,26 +241,6 @@ bray_permanova_text <- paste("PERMANOVA", bp_pvalue, sep = "\n")
 bray_permanova
 ```
 
-**Pairwise Permanova**
-
-*Ronda vs Somiedo*
-
-```{r Pairwise1}
-pairwise_bray <- pairwise.adonis2(bray_distance ~ Site, data = meta)
-pairwise_bray$Ronda_vs_Somiedo
-```
-
-*Ronda vs Abla*
-
-```{r Pairwise2}
-pairwise_bray$Ronda_vs_Abla
-```
-
-*Somiedo vs Abla*
-
-```{r Pairwise3}
-pairwise_bray$Somiedo_vs_Abla
-```
 
 ***PCoA - Bray Curtis*** 
 
@@ -265,7 +248,9 @@ pairwise_bray$Somiedo_vs_Abla
 method <- "PCoA"
 
 pcoa_bray <- betadiversity_analysis(physeq.css, method, distance)
-plot_distance(physeq.css, pcoa_bray, "Site", elipse = TRUE) + annotate("text" ,x=0.2,y=0.43, label = bray_permanova_text) 
+beta_bact <- plot_distance(physeq.css, pcoa_bray, "Site", elipse = TRUE) + annotate("text" ,x=0.2,y=0.43, size = 5, label = bray_permanova_text) 
+
+beta_bact
 ```
 
 
@@ -274,11 +259,9 @@ plot_distance(physeq.css, pcoa_bray, "Site", elipse = TRUE) + annotate("text" ,x
 ```{r calculateRelativeAbundance}
 #filter NA and unclutured genus
 ps_genus <- subset_taxa(physeq.clean, Genus %in% genus_l)
-ps.taxa.sub <- subset_samples(ps_genus, Site %in% c("Ronda", "Somiedo"))
-ps.taxa.sub <- prune_taxa(taxa_sums(ps.taxa.sub) > 1, ps.taxa.sub)
 
 #Convert to relative abundance according to a taxonomic level -> Genus
-genus_rel_abun <- relative_abundance_by_taxa(ps.taxa.sub, "Genus")
+genus_rel_abun <- relative_abundance_by_taxa(ps_genus, "Genus")
 #physeq object
 genus_rel_ps <- genus_rel_abun[[1]]
 #data.frame
@@ -295,7 +278,10 @@ top_taxa <- top_taxa(genus_rel_ps, n = 20)
 filter_top_ps <- prune_taxa(top_taxa, genus_rel_ps)
 genus_top_filter.df <- phyloseq::psmelt(filter_top_ps)
 names(genus_top_filter.df)[3] <- paste("Rel_Abundance")
-plot_abundance_by_sample(genus_top_filter.df, "SampleID", "Rel_Abundance", "Genus", "SampleID") + facet_wrap(~Site, scales = "free")
+
+top_sample_bact <- plot_abundance_by_sample(genus_top_filter.df, "SampleID", "Rel_Abundance", "Genus", "SampleID") + facet_wrap(~Site, scales = "free") + theme(strip.text = element_text(size = 14)) 
+
+top_sample_bact
 ```
 
 ## > 1% Abundance
@@ -304,7 +290,7 @@ plot_abundance_by_sample(genus_top_filter.df, "SampleID", "Rel_Abundance", "Genu
 ps_genus_1 <- filter_taxa(genus_rel_ps, function(x) mean(x) > 1,TRUE)
 genus_1_filter.df <- phyloseq::psmelt(ps_genus_1)
 names(genus_1_filter.df)[3] <- paste("Rel_Abundance")
-plot_abundance_by_sample(genus_1_filter.df, "SampleID", "Rel_Abundance", "Genus", "SampleID") + facet_wrap(~Site, scales = "free")
+plot_abundance_by_sample(genus_1_filter.df, "SampleID", "Rel_Abundance", "Genus", "SampleID") + facet_wrap(~Site, scales = "free") + theme(strip.text = element_text(size = 14))
 ```
 
 
@@ -316,7 +302,9 @@ plot_abundance_by_sample(genus_1_filter.df, "SampleID", "Rel_Abundance", "Genus"
 top_genus_rel_sumarize <- genus_top_filter.df %>%  group_by(Site, Genus) %>% 
   summarise(Relative_Abundance=mean(Rel_Abundance, na.rm=TRUE), sd=sd(Rel_Abundance, na.rm=TRUE))
 
-plot_abundance_by_taxa(top_genus_rel_sumarize, "Genus", "Relative_Abundance", "Site")
+top_bact <- plot_abundance_by_taxa(top_genus_rel_sumarize, "Genus", "Relative_Abundance", "Site") 
+top_bact
+
 ```
   
 **Top 20 by Site**  
@@ -340,7 +328,8 @@ names(top_taxa.df)[3] <- paste("Rel_Abundance")
 top_20_genus_rel_sumarize <- top_taxa.df %>%  group_by(Site, Genus) %>% 
   summarise(Relative_Abundance=mean(Rel_Abundance, na.rm=TRUE), sd=sd(Rel_Abundance, na.rm=TRUE))
 
-plot_abundance_by_taxa(top_20_genus_rel_sumarize, "Genus", "Relative_Abundance", "Site")
+topsite_bact <- plot_abundance_by_taxa(top_20_genus_rel_sumarize, "Genus", "Relative_Abundance", "Site")
+topsite_bact
 ```
 
 
@@ -351,7 +340,7 @@ This analysis is carried out thanks to the R microeco package, which searches fo
 
 ```{r DAA-FTA, fig.width=8, fig.height=7}
 #Create microeco object with Ronda and Somiedo Samples
-meco_bact <- phyloseq2meco(ps.taxa.sub)
+meco_bact <- phyloseq2meco(genus_rel_ps)
 t1_bact <- trans_func$new(meco_bact)
 
 #Search in faproxtax
@@ -385,5 +374,6 @@ abund_t_bact <- t2_bact$res_abund[t2_bact$res_abund$Taxa %in% pathway_l, ]
 abund_t_bact$Taxa <- as.character(abund_t_bact$Taxa) 
 
 textdf_bact <- obtain_significance_df(sig_pathways, abund_t_bact)
-fta_abundance_barplot(abund_t_bact, textdf_bact, "Site")
+fta_bpl_bact <- fta_abundance_barplot(abund_t_bact, textdf_bact, "Site")
+fta_bpl_bact
 ```
