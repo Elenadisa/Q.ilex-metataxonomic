@@ -28,8 +28,12 @@ alpha_diversity_plot <- function(phy_object, group, alfa_metrics, my_comparisons
     
   }
   p <- p + ggtitle(label = title) + theme(
-    plot.title = element_text(size = 12, face = "bold", hjust = 0.5),
-    panel.border = element_rect(colour = "black", fill=NA, size=0.1))
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    panel.border = element_rect(colour = "black", fill=NA, size=1),
+    axis.title=element_text(size=14,face="bold"),
+    axis.text=element_text(size=12),
+    strip.text = element_text(size = 14),
+    axis.title.x=element_blank())
   
   return(p)
 }
@@ -57,10 +61,14 @@ filter_abundance_table <- function(phyobj, filter_type, filter){
 }
 
 plot_abundance_by_taxa <- function(df, taxa, metric, group){
-  plt <- ggplot(df ,aes(x=get(taxa), y=get(metric), group=get(group), fill=get(group))) +
+  plt <- ggplot(df ,aes(x=reorder(get(taxa), get(metric)), y=get(metric), group=get(group), fill=get(group))) +
     geom_bar(stat="identity",position="dodge")  +
     theme_classic() +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.title = element_blank()) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), 
+          legend.title = element_blank(),
+          axis.title=element_text(size=14,face="bold"),
+          axis.text=element_text(size=12),
+          legend.text=element_text(size=12)) +
     scale_fill_grey() +
     geom_errorbar(aes(ymin=get(metric), ymax=get(metric)+sd),
                   width=.2,                    # Width of the error bars
@@ -76,10 +84,16 @@ plot_abundance_by_sample <- function(df, sample, metric, taxa_level, x_lab){
   ggplot(df, aes(x=get(sample), y=get(metric), fill=get(taxa_level))) +
     geom_bar(stat='identity') +
     scale_fill_manual(values=rainbow(n))+
+    theme_classic() +
     geom_col(color = "black") +
     ylab(metric) +
     xlab(x_lab) +
-    theme(axis.text.x  = element_text(angle=90, vjust=0.5)) +
+    theme(axis.text.x  = element_text(angle=90, vjust=0.5),
+          panel.border = element_rect(colour = "black", fill=NA, size=1),
+          axis.title=element_text(size=14,face="bold"),
+          axis.text=element_text(size=12),
+          legend.text=element_text(size=12),
+          legend.title=element_text(size=14, face="bold")) +
     labs(fill = taxa_level)
 }
 
@@ -92,7 +106,10 @@ plot_stacked_abundance <- function(df, metric, taxa_level, group){
     theme_grey(base_size = 12) +
     theme(panel.background = element_blank(), 
           axis.text.x  = element_text(angle=90, vjust=0.5),
-          axis.line = element_line(colour = "black"))+
+          panel.border = element_rect(colour = "black", fill=NA, size=1),
+          axis.title=element_text(size=14,face="bold"),
+          axis.text=element_text(size=12),
+          legend.text=element_text(size=12)) +
     labs(fill = taxa_level)
   
 }
@@ -103,8 +120,12 @@ plot_abundance_heatmap<- function(df, metric, taxa_level, group){
     scale_fill_distiller(palette = "Spectral", name = metric) +
     ylab(taxa_level)+
     theme(panel.background = element_blank(),
-          axis.title.x=element_blank())+ 
-    theme(axis.text.x  = element_text(angle=90, vjust=0.5))
+          axis.title.x=element_blank(),
+          axis.text.x  = element_text(angle=90, vjust=0.5),
+          panel.border = element_rect(colour = "black", fill=NA, size=1),
+          axis.title=element_text(size=14,face="bold"),
+          axis.text=element_text(size=12),
+          legend.text=element_text(size=12))
 }
 
 ################################################################################
@@ -129,7 +150,11 @@ daa_point_plot <- function(df, contrast, title){
     ggtitle(title) +
     geom_vline(xintercept = 0.0, color = "Black", size = 0.5) +
     geom_point(size=3) + 
-    theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5)) +
+    theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5),
+          panel.border = element_rect(colour = "black", fill=NA, size=1),
+          axis.title=element_text(size=14,face="bold"),
+          axis.text=element_text(size=12),
+          legend.text=element_text(size=12)) +
     theme_minimal()
 }
 
@@ -151,6 +176,11 @@ daa_bar_plot <- function(df, contrast, title){
     geom_col(aes(x = log2FoldChange, y = Genus, fill = Phylum)) + 
     geom_vline(xintercept = 0.0, color = "Black", size = 0.7)  +
     ggtitle(title) +
+    theme(
+      panel.border = element_rect(colour = "black", fill=NA, size=1),
+      axis.title=element_text(size=14,face="bold"),
+      axis.text=element_text(size=12),
+      legend.text=element_text(size=12)) +
     theme_minimal()
 }
 
@@ -173,7 +203,13 @@ logfoldchange_plot <- function(df, title){
     xlab("Log Fold Change") + ylab(" ")+ 
     ggtitle(title) +
     theme_minimal()+
-    theme(legend.title=element_blank())
+    theme(legend.title=element_blank(),
+          panel.background = element_blank(),
+          axis.text.x  = element_text(angle=90, vjust=0.5),
+          panel.border = element_rect(colour = "black", fill=NA, size=1),
+          axis.title=element_text(size=14,face="bold"),
+          axis.text=element_text(size=12),
+          legend.text=element_text(size=12))
 }
 
 importance_score_plot <- function(df, title){
@@ -181,7 +217,11 @@ importance_score_plot <- function(df, title){
     geom_bar(stat="identity",position="stack", width = 0.5) +
     xlab("Importance score") + ylab(" ") +
     ggtitle(title) + 
-    theme(legend.title=element_blank())
+    theme(legend.title=element_blank(),
+          panel.border = element_rect(colour = "black", fill=NA, size=1),
+          axis.title=element_text(size=14,face="bold"),
+          axis.text=element_text(size=12),
+          legend.text=element_text(size=12))
 }
 
 
@@ -192,7 +232,11 @@ aldex_logfoldchange_plot <- function(df, title){
     xlab("ef_aldex") + ylab(" ")+ 
     ggtitle(title) +
     theme_minimal()+
-    theme(legend.title=element_blank())
+    theme(legend.title=element_blank(),
+          panel.border = element_rect(colour = "black", fill=NA, size=1),
+          axis.title=element_text(size=14,face="bold"),
+          axis.text=element_text(size=12),
+          legend.text=element_text(size=12))
 }
 
 CLR_diff_mean_plot <- function(df, title){
@@ -200,7 +244,11 @@ CLR_diff_mean_plot <- function(df, title){
     geom_bar(stat="identity",position="stack", width = 0.5) +
     xlab("CLR_diff_mean") + ylab(" ") +
     ggtitle(title) + 
-    theme(legend.title=element_blank())
+    theme(legend.title=element_blank(),
+          panel.border = element_rect(colour = "black", fill=NA, size=1),
+          axis.title=element_text(size=14,face="bold"),
+          axis.text=element_text(size=12),
+          legend.text=element_text(size=12))
 }
 
 ################################################################################
@@ -250,9 +298,14 @@ plot_distance <- function(pseq, bd, color, shape=NULL, elipse = TRUE){
   }
   
   plt <- plot_ordination(pseq, bd, color= color, shape=shape) + geom_point(size=3)
-  plt <- plt + theme_classic()
   if (elipse ==TRUE){
-    plt <- plt + stat_ellipse() } 
+    plt <- plt + stat_ellipse() 
+  }
+  
+  plt <- plt + theme_classic() +theme(axis.title=element_text(size=14,face="bold"),
+                     axis.text=element_text(size=12),
+                     legend.text=element_text(size=12),
+                     legend.title=element_text(size=14))
   return(plt)
 }
 
@@ -294,13 +347,14 @@ fta_abundance_barplot <- function(abund_data, text_data, Group){
   ggplot(abund_data, aes(x=Mean, y=reorder(Taxa,Mean), fill = get(Group))) +
     geom_bar(colour="black", stat="identity", position=position_dodge()) +
     geom_errorbar(aes(xmin=Mean, xmax=Mean+SE), width=.2,position=position_dodge(.9)) +
+    xlab("Abundance") +
     theme_classic() +
     theme(axis.title.y = element_blank(),
-          axis.title.x = element_blank(),
           axis.text=element_text(size=14),
           legend.text=element_text(size=14),
-          legend.title=element_blank()) +
+          legend.title=element_blank(),
+          axis.title=element_text(size=14,face="bold")) +
     scale_fill_grey(start=0, end=1) +
-    geom_text(aes(x = y, y = x, label = add), data = text_data, size = 5, color = "black", inherit.aes = FALSE)
+    geom_text(aes(x = y, y = x, label = add), data = text_data, size = 6, color = "black", inherit.aes = FALSE)
   
 }
