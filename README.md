@@ -51,7 +51,6 @@ Also, you may download other packages from github:
 ```{r }
 install.packages('devtools')
 library(devtools)
-install_github("pmartinezarbizu/pairwiseAdonis/pairwiseAdonis")
 install_github("jbisanz/qiime2R")
 ```
 
