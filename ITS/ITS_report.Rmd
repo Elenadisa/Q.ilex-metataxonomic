@@ -18,7 +18,6 @@ knitr::opts_chunk$set(echo = TRUE,
 library(phyloseq)
 library(vegan)
 library(microbiome)
-library(microbiomeMarker)
 library(qiime2R)
 library(ggplot2)
 library(ggpubr)
@@ -274,20 +273,9 @@ top_sample_fungi <- plot_abundance_by_sample(genus_top_filter.df, "SampleID", "R
 top_sample_fungi
 ```
 
-## > 1% Abundance
-
-```{r 1RelAbundance, fig.width=10, fig.height=6}
-ps_genus_1 <- filter_taxa(genus_rel_ps, function(x) mean(x) > 1,TRUE)
-genus_1_filter.df <- phyloseq::psmelt(ps_genus_1)
-names(genus_1_filter.df)[3] <- paste("Rel_Abundance")
-plot_abundance_by_sample(genus_1_filter.df, "SampleID", "Rel_Abundance", "Genus", "SampleID") + facet_wrap(~Site, scales = "free") + theme(strip.text = element_text(size = 14))
-
-```
-
 
 ## Top 20 By Genera
   
-**Top 20**  
 ```{r Top20Genera, fig.width=8}
 
 top_genus_rel_sumarize <- genus_top_filter.df %>%  group_by(Site, Genus) %>% 
@@ -298,31 +286,6 @@ top_fungi
 
 ```
   
-**Top 20 by Site**  
-
-```{r Top20BySite, fig.width=8}
-#Top 20 by site
-ps_rel_ronda <- subset_samples(genus_rel_ps, Site %in% "Ronda")
-top_taxa_ronda <- top_taxa(ps_rel_ronda, n = 20)
-ps_top_taxa_ronda <- prune_taxa(top_taxa_ronda, ps_rel_ronda)
-ronda_top_taxa.df <- phyloseq::psmelt(ps_top_taxa_ronda)
-
-ps_rel_somiedo <- subset_samples(genus_rel_ps, Site %in% "Somiedo")
-top_taxa_somiedo <- top_taxa(ps_rel_somiedo, n = 20)
-ps_top_taxa_somiedo <- prune_taxa(top_taxa_somiedo, ps_rel_somiedo)
-somiedo_top_taxa.df <- phyloseq::psmelt(ps_top_taxa_somiedo)
-
-top_taxa.df <- rbind(ronda_top_taxa.df, somiedo_top_taxa.df)
-names(top_taxa.df)[3] <- paste("Rel_Abundance")
-
-
-top_20_genus_rel_sumarize <- top_taxa.df %>%  group_by(Site, Genus) %>% 
-  summarise(Relative_Abundance=mean(Rel_Abundance, na.rm=TRUE), sd=sd(Rel_Abundance, na.rm=TRUE))
-
-topsite_fungi <- plot_abundance_by_taxa(top_20_genus_rel_sumarize, "Genus", "Relative_Abundance", "Site")
-topsite_fungi
-```
-
 
 # Functional Traits Analysis
 
