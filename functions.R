@@ -43,23 +43,6 @@ alpha_diversity_plot <- function(phy_object, group, alfa_metrics, my_comparisons
 #                           ABUNDANCE                                          #
 ################################################################################
 
-filter_abundance_table <- function(phyobj, filter_type, filter){
-  if (tolower(filter_type) == "top"){
-    top_taxa <- top_taxa(phyobj, n = filter)
-    filter_ps <- prune_taxa(top_taxa, phyobj)
-    filter.df <- phyloseq::psmelt(filter_ps)
-  }else if (tolower(filter_type) == "percentage"){
-    filter_ps <- filter_taxa(phyobj, function(x){ mean(x) > filter}, prune = TRUE)
-    filter.df <- phyloseq::psmelt(filter_ps)
-  }else{
-    print("Not valid filter type. Only top and percentage filter available \n
-          top = obtain most abundant taxa \n
-          percentage = obtain the taxa with more than certain abundance")
-  }
-  
-  return(list(filter_ps, filter.df))
-}
-
 plot_abundance_by_taxa <- function(df, taxa, metric, group){
   plt <- ggplot(df ,aes(x=reorder(get(taxa), get(metric)), y=get(metric), group=get(group), fill=get(group))) +
     geom_bar(stat="identity",position="dodge")  +
@@ -97,159 +80,6 @@ plot_abundance_by_sample <- function(df, sample, metric, taxa_level, x_lab){
     labs(fill = taxa_level)
 }
 
-plot_stacked_abundance <- function(df, metric, taxa_level, group){
-  ggplot(df, aes(x=get(group), y=get(metric), fill=get(taxa_level))) +
-    geom_bar(stat='identity') +
-    geom_col(color = "black") +
-    ylab(metric) +
-    xlab(taxa_level)+
-    theme_grey(base_size = 12) +
-    theme(panel.background = element_blank(), 
-          axis.text.x  = element_text(angle=90, vjust=0.5),
-          panel.border = element_rect(colour = "black", fill=NA, size=1),
-          axis.title=element_text(size=14,face="bold"),
-          axis.text=element_text(size=12),
-          legend.text=element_text(size=12)) +
-    labs(fill = taxa_level)
-  
-}
-
-plot_abundance_heatmap<- function(df, metric, taxa_level, group){
-  ggplot(df, aes(get(group), get(taxa_level), fill= get(metric))) + 
-    geom_tile() +
-    scale_fill_distiller(palette = "Spectral", name = metric) +
-    ylab(taxa_level)+
-    theme(panel.background = element_blank(),
-          axis.title.x=element_blank(),
-          axis.text.x  = element_text(angle=90, vjust=0.5),
-          panel.border = element_rect(colour = "black", fill=NA, size=1),
-          axis.title=element_text(size=14,face="bold"),
-          axis.text=element_text(size=12),
-          legend.text=element_text(size=12))
-}
-
-################################################################################
-#                          DIFFERENTIAL ABUNDANCE DESEQ2                       #
-################################################################################
-
-daa_point_plot <- function(df, contrast, title){
-  
-  theme_set(theme_bw())
-    #Transform data
-  # Phylum order
-  x = tapply(df$log2FoldChange, df$Phylum, function(x) max(x))
-  x = sort(x, TRUE)
-  df$Phylum = factor(as.character(df$Phylum), levels=names(x))
-  # Genus order
-  x = tapply(df$log2FoldChange, df$Genus, function(x) max(x))
-  x = sort(x, TRUE)
-  df$Genus = factor(as.character(df$Genus), levels=names(x))
-  
-    #Create plot
-  ggplot(df, aes(y=Genus, x=log2FoldChange, color=Phylum)) + 
-    ggtitle(title) +
-    geom_vline(xintercept = 0.0, color = "Black", size = 0.5) +
-    geom_point(size=3) + 
-    theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5),
-          panel.border = element_rect(colour = "black", fill=NA, size=1),
-          axis.title=element_text(size=14,face="bold"),
-          axis.text=element_text(size=12),
-          legend.text=element_text(size=12)) +
-    theme_minimal()
-}
-
-daa_bar_plot <- function(df, contrast, title){
-  theme_set(theme_bw())
-  
-    #Transform data
-  # Phylum order
-  x = tapply(df$log2FoldChange, df$Phylum, function(x) max(x))
-  x = sort(x, TRUE)
-  df$Phylum = factor(as.character(df$Phylum), levels=names(x))
-  # Genus order
-  x = tapply(df$log2FoldChange, df$Genus, function(x) max(x))
-  x = sort(x, TRUE)
-  df$Genus = factor(as.character(df$Genus), levels=names(x))
-  
-    #Generate plot
-  ggplot(df) +
-    geom_col(aes(x = log2FoldChange, y = Genus, fill = Phylum)) + 
-    geom_vline(xintercept = 0.0, color = "Black", size = 0.7)  +
-    ggtitle(title) +
-    theme(
-      panel.border = element_rect(colour = "black", fill=NA, size=1),
-      axis.title=element_text(size=14,face="bold"),
-      axis.text=element_text(size=12),
-      legend.text=element_text(size=12)) +
-    theme_minimal()
-}
-
-################################################################################
-#                          DIFFERENTIAL ABUNDANCE                              #
-################################################################################
-
-lefse_lda_plot <- function(df, title){
- ggplot(df) +
- geom_bar(aes(x = ef_lda, y = feature, fill = enrich_group), stat="identity",position="dodge", width = 0.5) +
- xlab("LDA score (log10)") + ylab(" ") +
- ggtitle(title) + 
- theme(legend.title=element_blank())
-}
-
-logfoldchange_plot <- function(df, title){
-  ggplot(df) +
-    geom_col(aes(x = ef_logFC, y = feature, fill = enrich_group)) + 
-    geom_vline(xintercept = 0.0, color = "Black", size = 0.7)  +
-    xlab("Log Fold Change") + ylab(" ")+ 
-    ggtitle(title) +
-    theme_minimal()+
-    theme(legend.title=element_blank(),
-          panel.background = element_blank(),
-          axis.text.x  = element_text(angle=90, vjust=0.5),
-          panel.border = element_rect(colour = "black", fill=NA, size=1),
-          axis.title=element_text(size=14,face="bold"),
-          axis.text=element_text(size=12),
-          legend.text=element_text(size=12))
-}
-
-importance_score_plot <- function(df, title){
-  ggplot(df, aes(x = ef_imp, y = feature, fill = enrich_group)) +
-    geom_bar(stat="identity",position="stack", width = 0.5) +
-    xlab("Importance score") + ylab(" ") +
-    ggtitle(title) + 
-    theme(legend.title=element_blank(),
-          panel.border = element_rect(colour = "black", fill=NA, size=1),
-          axis.title=element_text(size=14,face="bold"),
-          axis.text=element_text(size=12),
-          legend.text=element_text(size=12))
-}
-
-
-aldex_logfoldchange_plot <- function(df, title){
-  ggplot(df) +
-    geom_col(aes(x = ef_aldex, y = feature, fill = enrich_group)) + 
-    geom_vline(xintercept = 0.0, color = "Black", size = 0.7)  +
-    xlab("ef_aldex") + ylab(" ")+ 
-    ggtitle(title) +
-    theme_minimal()+
-    theme(legend.title=element_blank(),
-          panel.border = element_rect(colour = "black", fill=NA, size=1),
-          axis.title=element_text(size=14,face="bold"),
-          axis.text=element_text(size=12),
-          legend.text=element_text(size=12))
-}
-
-CLR_diff_mean_plot <- function(df, title){
-  ggplot(df, aes(x = ef_CLR_diff_mean, y = feature, fill = enrich_group)) +
-    geom_bar(stat="identity",position="stack", width = 0.5) +
-    xlab("CLR_diff_mean") + ylab(" ") +
-    ggtitle(title) + 
-    theme(legend.title=element_blank(),
-          panel.border = element_rect(colour = "black", fill=NA, size=1),
-          axis.title=element_text(size=14,face="bold"),
-          axis.text=element_text(size=12),
-          legend.text=element_text(size=12))
-}
 
 ################################################################################
 #                          RELATIVE ABUNDANCE                                  #
@@ -308,12 +138,6 @@ plot_distance <- function(pseq, bd, color, shape=NULL, elipse = TRUE){
                      legend.title=element_text(size=14))
   return(plt)
 }
-
-plot_distance_network <- function(pseq, distance, color, shape){
-  ig <- phyloseq::make_network(pseq, dist.fun=distance, max.dist=0.8)
-  phyloseq::plot_network(ig, pseq, color=color, shape=shape, line_weight=0.4, label=NULL)
-}
-
 
 ################################################################################
 #                   FUNCTIONAL TRAIT ANALYSIS                                  #
