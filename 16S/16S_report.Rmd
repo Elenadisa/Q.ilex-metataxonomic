@@ -33,7 +33,7 @@ library(ggVennDiagram)
 
 ```{r echo=FALSE}
 #load own functions
-source("C:/Users/elenad/Documents/proyectos/scripts/functions.R")
+source("../Q.ilex-metataxonomic/functions.R")
 ```
 
 

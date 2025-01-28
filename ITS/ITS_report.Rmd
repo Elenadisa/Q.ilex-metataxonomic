@@ -1,7 +1,6 @@
 ---
 title: "ITS_report"
 author: "Elena D. Díaz Santiago"
-date: "2024-11-14"
 output: html_document
 ---
 
@@ -34,7 +33,7 @@ library(multcompView)
 
 ```{r echo=FALSE}
 #load own functions
-source("C:/Users/elenad/Documents/proyectos/scripts/functions.R")
+source("../Q.ilex-metataxonomic/functions.R")
 ```
 
 
