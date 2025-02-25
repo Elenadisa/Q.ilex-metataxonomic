@@ -1,14 +1,4 @@
 SampleID	Site
-Sample42	Abla
-Sample43	Abla
-Sample44	Abla
-Sample45	Abla
-Sample46	Abla
-Sample47	Abla
-Sample48	Abla
-Sample49	Abla
-Sample50	Abla
-Sample51	Abla
 Sample117	Ronda
 Sample118	Ronda
 Sample119	Ronda
