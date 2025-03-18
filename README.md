@@ -1,5 +1,7 @@
 # Q.ilex-metataxonomic
 
+[![DOI](https://zenodo.org/badge/893996443.svg)](https://doi.org/10.5281/zenodo.15044187)
+
 This repository stores the code available to perform an amplicon analysis with QIIME2 and downstream analysis with R.  
 This code can be run in any Linux system. However, if you are a Windows user you need to run QIIME2 part in WSL.  
   
